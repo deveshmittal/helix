@@ -75,11 +75,31 @@ The `change-id` is preserved across the amend. This is the property Gerrit gets 
 | Config | `config`, `remote add|remove` |
 | Plumbing | `hash-object [-w]`, `cat-object [-p|-t]` (alias `cat-file`) |
 
+### Next 15 — also real
+
+| Command | What it does |
+|---|---|
+| `blame <file>` | Per-line attribution; walks first-parent history |
+| `shortlog` | Commit count + subjects grouped by author |
+| `whatchanged [-n N]` | Like `log -p` — log entries with per-commit diffs |
+| `merge-base <a> <b>` | Print the common ancestor of two refs |
+| `bisect <start\|good\|bad\|reset\|status>` | Binary-search for a regression; midpoint by topological distance, detached HEAD during search |
+| `grep [-i] <pattern> [path...]` | Regex search across the working tree |
+| `notes <add\|show\|remove\|list>` | Attach key/value notes to commits |
+| `reflog [<ref>]` | History of HEAD/branch movements (commit, switch, reset) |
+| `gc [-n]` | Mark-and-sweep unreachable objects |
+| `fsck` | Verify object integrity by re-hashing every object on disk |
+| `archive [--format tar\|zip] [-o file] <commit>` | Tar/zip of a tree |
+| `worktree <add\|list\|remove>` | Multiple working trees (clone-backed in this MVP) |
+| `format-patch [-1] [-o dir] <since>` | Emit mbox-style .patch files; **change-id is in the patch header** |
+| `am <file>...` | Apply mbox patches as commits, **preserving change-id** |
+| `apply <diff-file>` | Apply a unified diff to the working tree (no commit) |
+
 ### Recognized but not implemented (informative error)
 
-`blame bisect submodule worktree reflog gc fsck archive format-patch am apply shortlog grep notes whatchanged`
+`submodule`
 
-Running any of these prints what it would do and points to the relevant DESIGN.md section. They are not silent no-ops.
+The design (§10.4) replaces submodules with scope-imports. The command is kept as an informative stub so users running `helix submodule` see why.
 
 Hashes are SHA-256, displayed as full 64-char hex. Short prefixes (≥ 4 chars) work where unambiguous.
 
@@ -142,14 +162,20 @@ go test -v          # see each test name
 ```
 
 - **5 unit tests** in `object_test.go` — hash stability, kind/content differentiation, tree and commit round-tripping.
-- **15 integration tests** in `integration_test.go` — one per top-15 verb (init, status, add, commit, log, diff, branch, switch, merge, clone, fetch, pull, push, rebase, stash). Each test sets up a temp repo, runs the command via its function, and asserts on disk state. Specifically verified invariants:
+- **30 integration tests** total: 15 in `integration_test.go` for the top-15 verbs (init, status, add, commit, log, diff, branch, switch, merge, clone, fetch, pull, push, rebase, stash) and 15 in `integration_extra_test.go` for the next-15 (blame, shortlog, whatchanged, merge-base, bisect, grep, notes, reflog, gc, fsck, archive, worktree, format-patch, am, apply).
+
+Specifically verified invariants:
   - `commit --amend` preserves `change-id`.
   - `rebase` preserves `change-id` across replay.
+  - `format-patch` + `am` round-trip preserves `change-id` across repos.
   - `merge` produces a two-parent commit.
   - `push` refuses non-fast-forward updates.
   - `switch` refuses to change branches with a dirty working tree.
+  - `gc` deletes orphan blobs but keeps reachable objects.
+  - `fsck` detects hash mismatches.
+  - `bisect` reduces the candidate set by ~half each step (topological median).
 
-See [EXAMPLES.md](EXAMPLES.md) for the corresponding worked examples (one per command).
+See [EXAMPLES.md](EXAMPLES.md) for the corresponding worked examples.
 
 ## License
 

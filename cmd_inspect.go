@@ -143,6 +143,7 @@ func printDiff(r *Repo, oldList, newList []IndexEntry) error {
 			}
 			newText = string(obj.Body)
 		}
+		fmt.Printf("diff --helix a/%s b/%s\n", p, p)
 		fmt.Printf("--- a/%s\n", p)
 		fmt.Printf("+++ b/%s\n", p)
 		printUnifiedLines(oldText, newText)

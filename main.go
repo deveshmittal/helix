@@ -81,9 +81,39 @@ func main() {
 		err = cmdRebase(args)
 	case "stash":
 		err = cmdStash(args)
-	// stubs (recognized; not implemented)
-	case "blame", "bisect", "submodule", "worktree", "reflog", "gc", "fsck",
-		"archive", "format-patch", "am", "apply", "shortlog", "grep", "notes", "whatchanged":
+	// next 15
+	case "blame":
+		err = cmdBlame(args)
+	case "shortlog":
+		err = cmdShortlog(args)
+	case "whatchanged":
+		err = cmdWhatchanged(args)
+	case "merge-base":
+		err = cmdMergeBase(args)
+	case "bisect":
+		err = cmdBisect(args)
+	case "grep":
+		err = cmdGrep(args)
+	case "notes":
+		err = cmdNotes(args)
+	case "reflog":
+		err = cmdReflog(args)
+	case "gc":
+		err = cmdGc(args)
+	case "fsck":
+		err = cmdFsck(args)
+	case "archive":
+		err = cmdArchive(args)
+	case "worktree":
+		err = cmdWorktree(args)
+	case "format-patch":
+		err = cmdFormatPatch(args)
+	case "am":
+		err = cmdAm(args)
+	case "apply":
+		err = cmdApply(args)
+	// remaining stubs
+	case "submodule":
 		err = cmdStub(cmd)
 	// meta
 	case "version", "--version", "-v":
@@ -150,9 +180,31 @@ plumbing:
   ls-tree [-r] <tree-or-commit>         list a tree's contents
   rev-parse <ref>...                    resolve refs to hashes
 
+history:
+  blame <file>                          per-line attribution
+  shortlog                              commits per author
+  whatchanged [-n N]                    log + per-commit diff
+  merge-base <a> <b>                    common ancestor
+
+state / search:
+  bisect start|good|bad|reset|status    binary-search for a regression
+  grep [-i] <pattern> [path...]         regex over working tree
+  notes add|show|remove|list            commit-attached notes
+  reflog [<ref>]                        HEAD movement history
+
+maintenance:
+  gc [-n]                               sweep unreachable objects
+  fsck                                  verify object integrity
+  archive [--format tar|zip] [-o file] <commit>   tar/zip of a tree
+  worktree add|list|remove              multiple working trees
+
+patches:
+  format-patch [-1] [-o dir] <since>    write mbox patch files
+  am <patch-file>...                    apply mbox patches as commits
+  apply <diff-file>                     apply a unified diff (no commit)
+
 recognized but not implemented (informative error):
-  blame bisect submodule worktree reflog gc fsck
-  archive format-patch am apply shortlog grep notes whatchanged
+  submodule
 
 meta:
   version                               print version

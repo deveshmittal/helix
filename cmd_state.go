@@ -83,6 +83,7 @@ func cmdReset(args []string) error {
 	if err != nil {
 		return err
 	}
+	prev, _ := r.ResolveHead()
 	head, err := r.ReadHead()
 	if err != nil {
 		return err
@@ -96,6 +97,11 @@ func cmdReset(args []string) error {
 			return err
 		}
 	}
+	mode := "soft"
+	if *hard {
+		mode = "hard"
+	}
+	r.LogRef("HEAD", prev, hash, "reset --"+mode, "")
 	if *hard {
 		if err := r.CheckoutCommit(hash); err != nil {
 			return err

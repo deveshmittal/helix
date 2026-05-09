@@ -258,6 +258,7 @@ func cmdCommit(args []string) error {
 	if err != nil {
 		return err
 	}
+	prevHead := headHash
 	if head.Symbolic {
 		if err := r.WriteRef(head.Ref, hash); err != nil {
 			return err
@@ -267,7 +268,11 @@ func cmdCommit(args []string) error {
 			return err
 		}
 	}
-	// update index cache
+	op := "commit"
+	if *amend {
+		op = "commit (amend)"
+	}
+	r.LogRef("HEAD", prevHead, hash, op, firstLine(*msg))
 	if err := r.WriteIndex(&Index{Entries: current}); err != nil {
 		return err
 	}

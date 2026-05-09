@@ -115,12 +115,14 @@ func cmdSwitch(args []string) error {
 		return fmt.Errorf("branch not found: %s", name)
 	}
 
+	prev, _ := r.ResolveHead()
 	if err := r.CheckoutCommit(target); err != nil {
 		return err
 	}
 	if err := os.WriteFile(r.HeadFile(), []byte("ref: branches/"+name+"\n"), 0o644); err != nil {
 		return err
 	}
+	r.LogRef("HEAD", prev, target, "switch", "to "+name)
 	fmt.Printf("Switched to branch %s\n", name)
 	return nil
 }
