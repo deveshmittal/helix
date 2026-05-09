@@ -43,45 +43,50 @@ The `change-id` is preserved across the amend. This is the property Gerrit gets 
 
 ## Commands
 
-| Command | What it does |
+### Implemented (real semantics)
+
+| Category | Commands |
 |---|---|
-| `helix init [path]` | Create a new repository. |
-| `helix status` | Show added/modified/deleted files vs HEAD. |
-| `helix commit -m <msg> [--amend]` | Snapshot the working tree. `--amend` preserves the change-id. |
-| `helix log [-n N]` | Walk parents from HEAD. |
-| `helix hash-object [-w] <file>` | Compute (and optionally store) a blob's SHA-256 hash. |
-| `helix cat-object [-p|-t] <hash>` | Read an object back. `-p` pretty-prints commits/trees; `-t` shows type only. |
+| Basic | `init`, `status`, `commit -m <msg> [--amend]`, `log [-n]`, `diff`, `show` |
+| Files | `add`, `rm`, `mv`, `ls-files`, `ls-tree [-r]` |
+| Branching | `branch`, `switch [-c] [-f]`, `checkout` (alias), `tag` |
+| State | `restore --source`, `reset [--hard|--soft]`, `clean -n|-f` |
+| Combine | `cherry-pick`, `revert`, `merge` (fast-forward only) |
+| Config | `config`, `remote add|remove` |
+| Plumbing | `hash-object [-w]`, `cat-object [-p|-t]` (alias `cat-file`), `rev-parse` |
+
+`--amend` preserves the change-id — the property the design highlights as Gerrit's killer feature, made native.
+
+### Recognized but not implemented (informative error)
+
+`clone fetch pull push rebase stash blame bisect submodule worktree reflog gc fsck archive format-patch am apply shortlog grep notes whatchanged`
+
+Running any of these prints what it would do and points to the relevant DESIGN.md section. They are not silent no-ops.
 
 Hashes are SHA-256, displayed as full 64-char hex. Short prefixes (≥ 4 chars) work where unambiguous.
 
-## What works
+## What's real, what's not
 
-- SHA-256 content-addressed object store on disk under `.helix/objects/aa/bbcc...`.
-- Three object kinds: `blob`, `tree`, `commit`.
-- Stable `change-id` in commit headers, preserved across `--amend`.
-- Repository discovery (walks up from cwd looking for `.helix/`).
-- Symbolic-ref `HEAD → refs/branches/main`.
+**Real:**
+- SHA-256 content-addressed object store under `.helix/objects/aa/bbcc...`.
+- Three object kinds (`blob`, `tree`, `commit`) plus refs (`branches/`, `tags/`, `HEAD`).
+- Stable `change-id` in the commit header, preserved across `--amend`.
 - Working-tree scan with added/modified/deleted detection vs HEAD.
-- Tree directory structure (nested directories produce nested tree objects).
-- Round-trip-tested encoding for tree and commit objects.
+- Switching branches that updates the working tree (refusing if dirty without `-f`).
+- Cherry-pick and revert with file-level conflict detection (errors if working tree differs from the expected base).
+- Fast-forward merges with ancestor checks.
+- Unified diff (LCS-based) for `diff` and `show`.
+- File-based config and remote storage.
 
-## What does not yet work
-
-Everything else in `DESIGN.md`, notably:
-
+**Not real (yet):**
 - No server, no review, no comments, no approvals, no submit rules.
-- No network protocol — `clone`, `push`, `pull` are not implemented.
-- No staging area is intentional, but no `helix stage` opt-in path either yet.
-- No reftable (refs are flat files).
-- No pack files; every object is its own file.
-- No compression. Object bodies are raw bytes — fine for an MVP, expensive at scale.
-- No merge, no rebase, no branch switching that touches the working tree.
-- No op-log, no `helix undo`.
-- No Git interop (import or export).
-- No large-file chunking, no partial clone, no sparse checkout.
-- No signing.
+- No network protocol — anything remote (`clone`, `push`, `pull`, `fetch`) is a stub.
+- No 3-way merge — `merge` only handles fast-forward; non-FF prints the design reference.
+- No reftable (refs are flat files); no pack files; no compression.
+- No op-log / `undo`, no Git interop, no large-file chunking, no partial clone, no signing.
+- No `rebase`, no `stash` (intentional — see design), no `blame`, no `bisect`.
 
-These are not stubs — they're simply not in this slice. See `DESIGN.md` for what they should look like.
+These are listed honestly so you can see the gap between this MVP slice and the full design. Each stub command prints its own DESIGN.md reference when invoked.
 
 ## Layout
 
@@ -96,7 +101,12 @@ These are not stubs — they're simply not in this slice. See `DESIGN.md` for wh
 ├── refs.go              # HEAD and refs/branches/* read/write
 ├── index.go             # working-tree scan, tree builder, tree flatten
 ├── commit.go            # commit encoding and change-id generation
-├── commands.go          # implementations of each CLI verb
+├── commands.go          # init, status, commit, log, hash-object, cat-object
+├── cmd_files.go         # add, rm, mv, ls-files, ls-tree, rev-parse
+├── cmd_branch.go        # branch, switch, checkout, tag, working-tree checkout
+├── cmd_inspect.go       # show, diff (with LCS-based unified diff)
+├── cmd_state.go         # restore, reset, clean, cherry-pick, revert, merge, config, remote
+├── cmd_stubs.go         # informative errors for unimplemented git commands
 └── object_test.go       # unit tests for object encoding round-trip
 ```
 
