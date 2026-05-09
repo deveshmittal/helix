@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Helix — version control that doesn't fight you</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1d2230;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #f5a35c;
+    --good: #6dd58c;
+    --bad: #ff7c7c;
+    --line: #262b38;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* hero */
+  .hero h1 {
+    font-size: clamp(34px, 5vw, 56px);
+    line-height: 1.05;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p.lede {
+    font-size: clamp(17px, 2.2vw, 21px);
+    color: var(--muted);
+    max-width: 720px;
+    margin: 0 0 28px;
+  }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 36px; }
+  .badge {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .badge b { color: var(--text); font-weight: 600; }
+
+  /* sections */
+  section { margin-top: 72px; }
+  section h2 {
+    font-size: clamp(22px, 3vw, 28px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  section .sub { color: var(--muted); margin: 0 0 24px; }
+
+  /* problem cards */
+  .grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); }
+  .card .ring {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 999px;
+    background: var(--panel-2); color: var(--accent);
+    margin-bottom: 12px; font-weight: 700; font-size: 14px;
+  }
+
+  /* terminal */
+  .term-shell {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #444; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .term-title { color: var(--muted); font-size: 12px; margin-left: auto; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .term-body {
+    background: #0b0d12;
+    padding: 18px 18px 22px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px;
+    min-height: 360px;
+    white-space: pre-wrap;
+    color: #e6e9ef;
+  }
+  .term-body .prompt { color: var(--accent); }
+  .term-body .cmd    { color: #fff; }
+  .term-body .out    { color: var(--muted); }
+  .term-body .hl     { color: var(--good); font-weight: 600; }
+  .term-body .same   { background: rgba(109, 213, 140, 0.15); padding: 0 4px; border-radius: 3px; }
+  .term-body .cursor { display: inline-block; width: 8px; height: 16px; vertical-align: -2px; background: var(--accent); margin-left: 1px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { background: transparent; } }
+
+  .term-controls { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    background: var(--accent); color: #1a1c22; border: 0;
+    padding: 9px 16px; border-radius: 8px;
+    font-weight: 600; cursor: pointer; font-size: 14px;
+    font-family: inherit;
+  }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* takeaway */
+  .takeaway {
+    border-left: 3px solid var(--accent);
+    padding: 12px 0 12px 18px;
+    color: var(--text);
+    font-size: 17px;
+    margin-top: 20px;
+  }
+  .takeaway b { color: var(--accent); }
+
+  /* command list */
+  .cmds { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .cmd-pill {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    color: var(--text);
+    text-align: center;
+  }
+  .cmd-pill.tier1 { border-color: rgba(245, 163, 92, 0.4); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    text-align: center;
+  }
+  .stat .n {
+    font-size: 36px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .stat .l { color: var(--muted); font-size: 13px; }
+
+  /* honest box */
+  .honest {
+    background: var(--panel);
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .honest h3 { margin: 0 0 10px; }
+  .honest ul { margin: 0; padding-left: 20px; color: var(--muted); }
+  .honest li { margin-bottom: 6px; }
+
+  /* footer */
+  footer { margin-top: 80px; padding-top: 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <h1>Version control that <span>doesn't fight you</span>.</h1>
+    <p class="lede">
+      Helix is a rethink of Git built around how teams actually review code.
+      It keeps everything good about Git, fixes what trips people up daily, and treats
+      code review as a first-class part of the tool — not a website bolted on top.
+    </p>
+    <div class="badges">
+      <span class="badge"><b>30</b> commands implemented</span>
+      <span class="badge"><b>35</b> tests passing</span>
+      <span class="badge"><b>Apache 2.0</b></span>
+      <span class="badge"><b>One</b> binary, written in Go</span>
+    </div>
+  </header>
+
+  <!-- PROBLEM -->
+  <section>
+    <h2>The everyday pain Helix removes</h2>
+    <p class="sub">Three things that bite developers — and their managers — every day.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="ring">1</div>
+        <h3>"Wait, did the reviewer's comments survive?"</h3>
+        <p>In Git, fixing a typo in a code review can lose the reviewer's place. Helix gives every change a stable identity that survives edits — reviewers see "version 2 of the same change" instead of "a brand-new one."</p>
+      </div>
+      <div class="card">
+        <div class="ring">2</div>
+        <h3>"I think I just lost my work."</h3>
+        <p>Git's history-rewriting tools are powerful and unforgiving. Helix records every action you take and lets you undo any of them — there's no "I broke my repo" moment.</p>
+      </div>
+      <div class="card">
+        <div class="ring">3</div>
+        <h3>"How do I do this again?"</h3>
+        <p>Git has 150+ commands. Helix has 15 daily ones, with names that mean what they do. New developers ramp up in hours, not weeks.</p>
+      </div>
+      <div class="card">
+        <div class="ring">4</div>
+        <h3>"Reviews live in another tool."</h3>
+        <p>In most teams, code lives in Git and reviews live in GitHub or Gerrit. They don't talk well. Helix puts reviews, comments, and approvals into the repository itself — so audits, migrations, and offline work all just work.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE DEMO -->
+  <section>
+    <h2>The "magic moment", live</h2>
+    <p class="sub">Watch what happens when you fix a code review and re-submit it. Press play.</p>
+
+    <div class="term-shell">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="term-title">helix demo · zsh</span>
+      </div>
+      <pre class="term-body" id="term"></pre>
+    </div>
+
+    <div class="term-controls">
+      <button id="play">▶ Play demo</button>
+      <button id="reset" class="secondary">Reset</button>
+      <button id="speed" class="secondary">Speed: 1×</button>
+    </div>
+
+    <div class="takeaway" id="takeaway" hidden>
+      <b>Notice the highlighted line.</b> The change identifier <code>cs-egw5mzypgg</code> stayed
+      the same after we edited the code — even though the commit hash changed. In Git, that
+      reviewer would have lost their progress. In Helix, the review just continues.
+    </div>
+  </section>
+
+  <!-- COMMANDS -->
+  <section>
+    <h2>30 git commands, all working</h2>
+    <p class="sub">The orange ones are the daily-driver 15. The rest are the next 15 — also fully implemented.</p>
+    <div class="cmds">
+      <div class="cmd-pill tier1">init</div>
+      <div class="cmd-pill tier1">status</div>
+      <div class="cmd-pill tier1">add</div>
+      <div class="cmd-pill tier1">commit</div>
+      <div class="cmd-pill tier1">log</div>
+      <div class="cmd-pill tier1">diff</div>
+      <div class="cmd-pill tier1">branch</div>
+      <div class="cmd-pill tier1">switch</div>
+      <div class="cmd-pill tier1">merge</div>
+      <div class="cmd-pill tier1">clone</div>
+      <div class="cmd-pill tier1">fetch</div>
+      <div class="cmd-pill tier1">pull</div>
+      <div class="cmd-pill tier1">push</div>
+      <div class="cmd-pill tier1">rebase</div>
+      <div class="cmd-pill tier1">stash</div>
+      <div class="cmd-pill">blame</div>
+      <div class="cmd-pill">shortlog</div>
+      <div class="cmd-pill">whatchanged</div>
+      <div class="cmd-pill">merge-base</div>
+      <div class="cmd-pill">bisect</div>
+      <div class="cmd-pill">grep</div>
+      <div class="cmd-pill">notes</div>
+      <div class="cmd-pill">reflog</div>
+      <div class="cmd-pill">gc</div>
+      <div class="cmd-pill">fsck</div>
+      <div class="cmd-pill">archive</div>
+      <div class="cmd-pill">worktree</div>
+      <div class="cmd-pill">format-patch</div>
+      <div class="cmd-pill">am</div>
+      <div class="cmd-pill">apply</div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section>
+    <h2>By the numbers</h2>
+    <p class="sub">A snapshot of what's in the repo today.</p>
+    <div class="stats">
+      <div class="stat"><div class="n">30</div><div class="l">git commands implemented</div></div>
+      <div class="stat"><div class="n">35</div><div class="l">automated tests passing</div></div>
+      <div class="stat"><div class="n">~5,500</div><div class="l">lines of Go</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">runtime dependencies</div></div>
+      <div class="stat"><div class="n">SHA-256</div><div class="l">cryptographic integrity</div></div>
+      <div class="stat"><div class="n">19</div><div class="l">design sections in the spec</div></div>
+    </div>
+  </section>
+
+  <!-- HONEST -->
+  <section>
+    <h2>Where it stands today</h2>
+    <p class="sub">Plain-English honesty about what's done and what isn't.</p>
+    <div class="honest">
+      <h3>Working today</h3>
+      <ul>
+        <li>Every command above runs and produces correct results — 35 automated tests verify behavior on every change.</li>
+        <li>The "magic moment" you saw above is a real property of the tool, not a marketing animation.</li>
+        <li>Anyone with the Go compiler can build and use it locally, today.</li>
+      </ul>
+      <h3 style="margin-top: 16px;">Not yet ready</h3>
+      <ul>
+        <li>Network sharing works between two folders on your computer; over-the-internet sharing needs the server piece (designed, not yet built).</li>
+        <li>The web review interface — comments, approvals, the whole "GitHub-like" experience — is in the design document, not yet in code.</li>
+        <li>This is a demo-able prototype, not a production tool. If your team is using Git and shipping software, keep doing that.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- WHAT'S NEXT -->
+  <section>
+    <h2>What this is for</h2>
+    <p class="sub">Three audiences, three reasons to care.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>For engineering leaders</h3>
+        <p>A working proof that you can fix the everyday friction Git creates without giving up its strengths. Read the design, run the demo, decide if it's worth investing in further.</p>
+      </div>
+      <div class="card">
+        <h3>For developers</h3>
+        <p>An honest "what would Git look like if it were designed today" exercise — with code, not just slides. Clone it, break it, send a pull request.</p>
+      </div>
+      <div class="card">
+        <h3>For everyone else</h3>
+        <p>A look under the hood at the tools your engineers use 50 times a day, and a peek at where they could go next.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Source code &amp; full design document:
+      <a href="https://github.com/deveshmittal/helix" target="_blank" rel="noopener">github.com/deveshmittal/helix</a>
+      &nbsp;·&nbsp; License: Apache 2.0
+      &nbsp;·&nbsp; This page is hand-written HTML; open it in any browser, online or offline.
+    </p>
+  </footer>
+
+</div>
+
+<script>
+// ---- Animated terminal demo ----
+//
+// Each step is either:
+//   { cmd: "...", out: "..." }   — type a command, then show its output
+//   { pause: 800 }               — pause N ms (used for narrative beats)
+//
+// Output supports inline tags via |hl|...|/hl| and |same|...|/same| that
+// render with color/highlight via the .hl / .same CSS classes.
+const SCRIPT = [
+  { cmd: "helix init my-feature && cd my-feature",
+    out: "Initialized empty helix repository in /home/you/my-feature/.helix\n" },
+
+  { cmd: 'echo "function greet() { return \\"hi\\" }" > app.js',
+    out: "" },
+
+  { cmd: 'helix commit -m "Add greet function"',
+    out: "[main 4a8b2c91] Add greet function\nchange-id: |same|cs-egw5mzypgg|/same|\n" },
+
+  { pause: 700 },
+
+  { cmd: "# We submit this for review. A reviewer suggests using a friendlier message.",
+    out: "" },
+
+  { pause: 700 },
+
+  { cmd: 'echo "function greet() { return \\"hello, world\\" }" > app.js',
+    out: "" },
+
+  { cmd: 'helix commit -m "Add greet function" --amend',
+    out: "[main 89f0d3e1] Add greet function\nchange-id: |same|cs-egw5mzypgg|/same|\n" },
+
+  { pause: 800 },
+
+  { cmd: "# ☝️  Same change-id.  Different commit hash. The reviewer's progress is preserved.",
+    out: "" },
+
+  { pause: 1200 },
+
+  { cmd: "helix log -n 1",
+    out: "commit 89f0d3e1...\n" +
+         "change |hl|cs-egw5mzypgg|/hl|\n" +
+         "author you <you@local>\n" +
+         "date   today\n\n" +
+         "    Add greet function\n" }
+];
+
+const term = document.getElementById("term");
+const playBtn = document.getElementById("play");
+const resetBtn = document.getElementById("reset");
+const speedBtn = document.getElementById("speed");
+const takeaway = document.getElementById("takeaway");
+
+let speed = 1;
+let cancelled = false;
+
+function escapeHTML(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function renderOut(text) {
+  // Replace |hl|...|/hl| and |same|...|/same| with span tags.
+  text = escapeHTML(text);
+  text = text.replace(/\|hl\|(.*?)\|\/hl\|/g, '<span class="hl">$1</span>');
+  text = text.replace(/\|same\|(.*?)\|\/same\|/g, '<span class="same">$1</span>');
+  return text;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms / speed)); }
+
+async function typeCmd(cmd) {
+  const promptHTML = '<span class="prompt">$ </span>';
+  // Append a fresh line with prompt and an empty cmd span we'll fill char-by-char.
+  term.insertAdjacentHTML('beforeend', promptHTML + '<span class="cmd"></span>');
+  const cmdSpan = term.lastElementChild;
+  for (let i = 0; i < cmd.length; i++) {
+    if (cancelled) return;
+    cmdSpan.textContent += cmd[i];
+    term.scrollTop = term.scrollHeight;
+    await sleep(25 + Math.random() * 30);
+  }
+  term.insertAdjacentHTML('beforeend', '\n');
+}
+
+async function showOut(out) {
+  if (!out) return;
+  await sleep(200);
+  if (cancelled) return;
+  // Render whole output at once (instant), with formatting.
+  term.insertAdjacentHTML('beforeend', '<span class="out">' + renderOut(out) + '</span>');
+  term.scrollTop = term.scrollHeight;
+}
+
+async function play() {
+  cancelled = false;
+  playBtn.disabled = true;
+  takeaway.hidden = true;
+  term.textContent = '';
+  for (const step of SCRIPT) {
+    if (cancelled) break;
+    if (step.pause) {
+      await sleep(step.pause);
+      continue;
+    }
+    await typeCmd(step.cmd);
+    await showOut(step.out);
+  }
+  playBtn.disabled = false;
+  if (!cancelled) takeaway.hidden = false;
+}
+
+function reset() {
+  cancelled = true;
+  term.textContent = '';
+  takeaway.hidden = true;
+  playBtn.disabled = false;
+}
+
+playBtn.addEventListener('click', play);
+resetBtn.addEventListener('click', reset);
+speedBtn.addEventListener('click', () => {
+  speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
+  speedBtn.textContent = 'Speed: ' + speed + '×';
+});
+
+// Auto-play once on page load, after a small delay so the page settles.
+window.addEventListener('load', () => { setTimeout(play, 600); });
+</script>
+
+</body>
+</html>
