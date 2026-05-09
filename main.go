@@ -64,15 +64,26 @@ func main() {
 	case "revert":
 		err = cmdRevert(args)
 	case "merge":
-		err = cmdMerge(args)
+		err = cmdMergeReal(args)
 	case "config":
 		err = cmdConfig(args)
 	case "remote":
 		err = cmdRemote(args)
+	case "clone":
+		err = cmdClone(args)
+	case "fetch":
+		err = cmdFetch(args)
+	case "pull":
+		err = cmdPull(args)
+	case "push":
+		err = cmdPush(args)
+	case "rebase":
+		err = cmdRebase(args)
+	case "stash":
+		err = cmdStash(args)
 	// stubs (recognized; not implemented)
-	case "clone", "fetch", "pull", "push", "rebase", "stash", "blame", "bisect",
-		"submodule", "worktree", "reflog", "gc", "fsck", "archive",
-		"format-patch", "am", "apply", "shortlog", "grep", "notes", "whatchanged":
+	case "blame", "bisect", "submodule", "worktree", "reflog", "gc", "fsck",
+		"archive", "format-patch", "am", "apply", "shortlog", "grep", "notes", "whatchanged":
 		err = cmdStub(cmd)
 	// meta
 	case "version", "--version", "-v":
@@ -120,9 +131,17 @@ state:
 advanced:
   cherry-pick <commit>                  apply a commit's changes
   revert <commit>                       create an inverse commit
-  merge <branch>                        fast-forward merge only (in MVP)
+  merge [--no-ff] <branch>              real 3-way merge (writes <<<<<<< markers on conflict)
+  rebase <new-base>                     replay commits onto a new base (preserves change-id)
+  stash [push|pop|apply|list|drop]      save WIP as a commit
   config <key> [<value>] | --list | --unset <key>
   remote [add|remove|-v] [args]
+
+remote (local file:// transport):
+  clone <src-path> [dest]               clone from another helix repo
+  fetch [<remote>]                      fetch refs and objects
+  push [<remote> [<branch>]]            push current (or named) branch
+  pull [<remote>]                       fetch + fast-forward
 
 plumbing:
   hash-object [-w] <file>               hash and (optionally) store a file as a blob
@@ -132,8 +151,8 @@ plumbing:
   rev-parse <ref>...                    resolve refs to hashes
 
 recognized but not implemented (informative error):
-  clone fetch pull push rebase stash blame bisect submodule worktree
-  reflog gc fsck archive format-patch am apply shortlog grep notes whatchanged
+  blame bisect submodule worktree reflog gc fsck
+  archive format-patch am apply shortlog grep notes whatchanged
 
 meta:
   version                               print version

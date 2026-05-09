@@ -43,23 +43,41 @@ The `change-id` is preserved across the amend. This is the property Gerrit gets 
 
 ## Commands
 
-### Implemented (real semantics)
+### The 15 most-used git commands — all real
+
+| Command | Status |
+|---|---|
+| `init` | ✓ creates a repo |
+| `status` | ✓ added/modified/deleted vs HEAD |
+| `add` | ✓ (no-op — helix has no staging) |
+| `commit -m <msg> [--amend]` | ✓ `--amend` preserves change-id |
+| `log [-n]` | ✓ walks parents from HEAD |
+| `diff` | ✓ working tree vs HEAD (LCS-based unified) |
+| `branch` | ✓ list / create / delete |
+| `switch` / `checkout` | ✓ with working-tree update + dirty check |
+| `merge` | ✓ **real 3-way line-level merge with conflict markers** |
+| `clone` | ✓ filesystem source (file://) |
+| `fetch` | ✓ from local remote |
+| `pull` | ✓ fetch + fast-forward |
+| `push` | ✓ to local remote, with non-FF refused |
+| `rebase` | ✓ linear, **preserves change-id across replay** |
+| `stash` (push/pop/list/drop) | ✓ saved as a WIP commit pointed at by `refs/stash` |
+| `reset [--hard|--soft]` | ✓ |
+
+### Also implemented
 
 | Category | Commands |
 |---|---|
-| Basic | `init`, `status`, `commit -m <msg> [--amend]`, `log [-n]`, `diff`, `show` |
-| Files | `add`, `rm`, `mv`, `ls-files`, `ls-tree [-r]` |
-| Branching | `branch`, `switch [-c] [-f]`, `checkout` (alias), `tag` |
-| State | `restore --source`, `reset [--hard|--soft]`, `clean -n|-f` |
-| Combine | `cherry-pick`, `revert`, `merge` (fast-forward only) |
+| Inspection | `show`, `tag`, `ls-files`, `ls-tree [-r]`, `rev-parse` |
+| Files | `rm`, `mv` |
+| Restore | `restore --source`, `clean -n|-f` |
+| Combine | `cherry-pick`, `revert` |
 | Config | `config`, `remote add|remove` |
-| Plumbing | `hash-object [-w]`, `cat-object [-p|-t]` (alias `cat-file`), `rev-parse` |
-
-`--amend` preserves the change-id — the property the design highlights as Gerrit's killer feature, made native.
+| Plumbing | `hash-object [-w]`, `cat-object [-p|-t]` (alias `cat-file`) |
 
 ### Recognized but not implemented (informative error)
 
-`clone fetch pull push rebase stash blame bisect submodule worktree reflog gc fsck archive format-patch am apply shortlog grep notes whatchanged`
+`blame bisect submodule worktree reflog gc fsck archive format-patch am apply shortlog grep notes whatchanged`
 
 Running any of these prints what it would do and points to the relevant DESIGN.md section. They are not silent no-ops.
 
@@ -69,24 +87,26 @@ Hashes are SHA-256, displayed as full 64-char hex. Short prefixes (≥ 4 chars) 
 
 **Real:**
 - SHA-256 content-addressed object store under `.helix/objects/aa/bbcc...`.
-- Three object kinds (`blob`, `tree`, `commit`) plus refs (`branches/`, `tags/`, `HEAD`).
-- Stable `change-id` in the commit header, preserved across `--amend`.
+- Three object kinds (`blob`, `tree`, `commit`) plus refs (`branches/`, `tags/`, `HEAD`, `remotes/`).
+- Stable `change-id` in the commit header, preserved across `--amend` AND across `rebase`.
 - Working-tree scan with added/modified/deleted detection vs HEAD.
 - Switching branches that updates the working tree (refusing if dirty without `-f`).
-- Cherry-pick and revert with file-level conflict detection (errors if working tree differs from the expected base).
-- Fast-forward merges with ancestor checks.
+- **Real 3-way line-level merge** with `<<<<<<< / ======= / >>>>>>>` conflict markers and merge commits with two parents.
+- **Local-filesystem remotes** — `clone`, `fetch`, `push`, `pull` against another helix repo on disk, the same file:// transport git supports. Push refuses non-fast-forward.
+- **Linear rebase** that cherry-picks each commit onto a new base, preserving change-ids.
+- **Stash** as save-WIP-commit / pop / list / drop. (The design suggests committing WIP directly; stash is a compatibility convenience, and the command says so.)
+- Cherry-pick and revert with file-level conflict detection.
 - Unified diff (LCS-based) for `diff` and `show`.
 - File-based config and remote storage.
 
 **Not real (yet):**
 - No server, no review, no comments, no approvals, no submit rules.
-- No network protocol — anything remote (`clone`, `push`, `pull`, `fetch`) is a stub.
-- No 3-way merge — `merge` only handles fast-forward; non-FF prints the design reference.
+- **No network protocol over the wire** — `clone`/`fetch`/`push`/`pull` only work against local paths. The design's gRPC transport (§3.8) replaces this; the file-based version above is the same shape minus the network.
 - No reftable (refs are flat files); no pack files; no compression.
 - No op-log / `undo`, no Git interop, no large-file chunking, no partial clone, no signing.
-- No `rebase`, no `stash` (intentional — see design), no `blame`, no `bisect`.
+- No `blame`, `bisect`, `submodule`, `gc`, `fsck`.
 
-These are listed honestly so you can see the gap between this MVP slice and the full design. Each stub command prints its own DESIGN.md reference when invoked.
+These are listed honestly so you can see the gap between this MVP slice and the full design. Each unimplemented command prints its own DESIGN.md reference when invoked.
 
 ## Layout
 
@@ -105,7 +125,11 @@ These are listed honestly so you can see the gap between this MVP slice and the 
 ├── cmd_files.go         # add, rm, mv, ls-files, ls-tree, rev-parse
 ├── cmd_branch.go        # branch, switch, checkout, tag, working-tree checkout
 ├── cmd_inspect.go       # show, diff (with LCS-based unified diff)
-├── cmd_state.go         # restore, reset, clean, cherry-pick, revert, merge, config, remote
+├── cmd_state.go         # restore, reset, clean, cherry-pick, revert, config, remote
+├── cmd_remote.go        # clone, fetch, push, pull (local-filesystem transport)
+├── cmd_merge3.go        # real 3-way merge command + tree merge logic
+├── merge3.go            # line-level diff3 algorithm
+├── cmd_rebase_stash.go  # rebase (linear, preserving change-ids), stash push/pop/list/drop
 ├── cmd_stubs.go         # informative errors for unimplemented git commands
 └── object_test.go       # unit tests for object encoding round-trip
 ```

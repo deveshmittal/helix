@@ -396,49 +396,6 @@ func cmdRevert(args []string) error {
 	return nil
 }
 
-func cmdMerge(args []string) error {
-	fs := flag.NewFlagSet("merge", flag.ExitOnError)
-	fs.Parse(args)
-	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: helix merge <branch>  (only fast-forward is implemented)")
-	}
-	r, err := FindRepo(".")
-	if err != nil {
-		return err
-	}
-	target, err := r.ResolveAny(fs.Arg(0))
-	if err != nil {
-		return err
-	}
-	headHash, _ := r.ResolveHead()
-	if headHash == "" {
-		// no commits — just FF
-		if err := updateHeadRef(r, target); err != nil {
-			return err
-		}
-		return r.CheckoutCommit(target)
-	}
-	if headHash == target {
-		fmt.Println("Already up to date.")
-		return nil
-	}
-	if isAncestor(r, headHash, target) {
-		if err := updateHeadRef(r, target); err != nil {
-			return err
-		}
-		if err := r.CheckoutCommit(target); err != nil {
-			return err
-		}
-		fmt.Printf("Fast-forwarded to %s\n", target[:12])
-		return nil
-	}
-	if isAncestor(r, target, headHash) {
-		fmt.Println("Already up to date.")
-		return nil
-	}
-	return fmt.Errorf("non-fast-forward merge not implemented in MVP (DESIGN.md §6.7 covers conflict-as-object). Try cherry-picking individual commits, or rebase your branch")
-}
-
 func isAncestor(r *Repo, ancestor, descendant string) bool {
 	visited := map[string]bool{}
 	stack := []string{descendant}
