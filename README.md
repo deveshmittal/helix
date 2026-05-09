@@ -138,9 +138,18 @@ These are listed honestly so you can see the gap between this MVP slice and the 
 
 ```sh
 go test ./...
+go test -v          # see each test name
 ```
 
-Five unit tests cover hash stability, hash differentiation by content and kind, and round-trip encoding for trees and commits. The end-to-end CLI flow (init → status → commit → log → amend) has been verified manually.
+- **5 unit tests** in `object_test.go` — hash stability, kind/content differentiation, tree and commit round-tripping.
+- **15 integration tests** in `integration_test.go` — one per top-15 verb (init, status, add, commit, log, diff, branch, switch, merge, clone, fetch, pull, push, rebase, stash). Each test sets up a temp repo, runs the command via its function, and asserts on disk state. Specifically verified invariants:
+  - `commit --amend` preserves `change-id`.
+  - `rebase` preserves `change-id` across replay.
+  - `merge` produces a two-parent commit.
+  - `push` refuses non-fast-forward updates.
+  - `switch` refuses to change branches with a dirty working tree.
+
+See [EXAMPLES.md](EXAMPLES.md) for the corresponding worked examples (one per command).
 
 ## License
 
